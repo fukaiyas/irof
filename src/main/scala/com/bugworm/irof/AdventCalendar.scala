@@ -67,7 +67,7 @@ object AdventCalendar {
         center = new Group(startbutton)
         bottom = new HBox{
             content = Seq(new Rectangle{
-                fill <== when (power > 90) then Color.BLUE otherwise Color.LIGHTGREEN
+                fill = Color.LIGHTGREEN
                 width <== power * 8
                 height = 50
             },
@@ -107,6 +107,7 @@ class AdventCalendar extends Application {
 	            onMousePressed = {e : MouseEvent => mouse = Option(e)}
 	            onMouseDragged = {e : MouseEvent => mouse = Option(e)}
 	            onMouseReleased = {mouse = None}
+	            onMouseClicked = {e : MouseEvent => special(e)}
                 content = Seq(canvas, statusscreen, subscreen)
                 cursor = new ImageCursor(cursorimg, cursorimg.getWidth / 2, cursorimg.getHeight / 2)
             }, screenWidth, screenHeight)
@@ -116,6 +117,9 @@ class AdventCalendar extends Application {
         mainloop.keyFrames = KeyFrame(30 ms, "[irof]", runFrame(canvas.graphicsContext2D))
     }
 
+    def special(e : MouseEvent) : Unit = {
+        
+    }
     def runFrame(gc : GraphicsContext): Unit = {
         execute()
         draw(gc)
