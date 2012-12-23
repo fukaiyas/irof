@@ -8,6 +8,7 @@ import scalafx.geometry.BoundingBox
 
 object Enemy{
     val meteoimg = new Image("/meteo.png")
+    val bossimg = new Image("/boss.png")
 }
 
 abstract class Enemy{
@@ -37,5 +38,29 @@ class Meteo extends Enemy{
     override def move() : Unit = {
         x += vx
         y += vy
+    }
+}
+
+object Boss extends Enemy{
+    val image = bossimg
+    var x = -500d
+    var y = -500d
+    val dx = irofX - x
+    val dy = irofY - y
+    val dis = Math.sqrt(dx * dx + dy * dy)
+    val vx = 5 * dx / dis
+    val vy = 5 * dy / dis
+
+    override def move() : Unit = {
+        x += vx
+        y += vy
+    }
+    override def crash() : Boolean = {
+        return x > screenWidth - 500 && y > screenHeight - 500
+    }
+    def reset() : Unit = {
+        hp = 50
+        x = -500d
+        y = -500d
     }
 }

@@ -20,7 +20,7 @@ import scalafx.scene.input.MouseEvent.sfxMouseEvent2jfx
 import scalafx.scene.input.MouseEvent
 import scalafx.scene.layout.StackPane.sfxStackPane2jfx
 import scalafx.scene.layout.StackPane
-import scalafx.scene.paint.Color
+import javafx.scene.paint.Color
 import scalafx.scene.shape.Rectangle
 import scalafx.scene.text.Font
 import scalafx.scene.ImageCursor
@@ -30,6 +30,9 @@ import scalafx.stage.Stage
 import scalafx.geometry.Pos
 import scalafx.scene.layout.HBox
 import scalafx.scene.layout.BorderPane
+import scalafx.beans.property.BooleanProperty
+import scalafx.scene.control.Label
+import scalafx.scene.Group
 
 object AdventCalendar {
 
@@ -45,17 +48,34 @@ object AdventCalendar {
     val irofX = screenWidth - irofimg.width.value
     val irofY = screenHeight - irofimg.height.value
 
-    val bomber = DoubleProperty(0)
+    var count = 0
+    val power = DoubleProperty(50)
+    var balloons = List[Balloon]()
+    var enemies = List[Enemy]()
 
     val mainloop = new Timeline{
         cycleCount = Timeline.INDEFINITE
     }
 
-    val startbutton = new Button("[START]"){
+    val startbutton = new Label("[START]"){
+        textFill = Color.BLACK
+        style = "-fx-background-color: DarkGray"
         font = Font.font("monospaced", FontWeight.BOLD, 48)
-        onAction = {e : ActionEvent =>
-            visible = false
-            mainloop.play
+    }
+    val subscreen = new Group
+    val statusscreen = new BorderPane{
+        center = new Group(startbutton)
+        bottom = new HBox{
+            content = Seq(new Rectangle{
+                fill <== when (power > 90) then Color.BLUE otherwise Color.LIGHTGREEN
+                width <== power * 8
+                height = 50
+            },
+            new Rectangle{
+                fill = Color.RED
+                width <== (- power + 100) * 8
+                height = 50
+            })
         }
     }
 
@@ -64,34 +84,30 @@ object AdventCalendar {
 
 class AdventCalendar extends Application {
 
-    var balloons = List[Balloon]()
-    var enemies = List[Enemy]()
     var mouse : Option[MouseEvent] = None
-    var count = 0
 
     def start(stage: javafx.stage.Stage): Unit = {
 
+        startbutton.onMouseClicked = {e : MouseEvent =>
+            startbutton.visible = false
+            count = 0
+            Boss.reset()
+            power.value = 10
+            balloons = List[Balloon]()
+            enemies = List[Enemy]()
+            subscreen.children.clear()
+            statusscreen.top = null
+            mainloop.play
+        }
+
         val canvas = new Canvas(screenWidth, screenHeight)
         new Stage(stage){
+            title = "irof Advent Calendar 2012 - Save the Earth! irof-san"
             scene = new Scene(new StackPane{
 	            onMousePressed = {e : MouseEvent => mouse = Option(e)}
 	            onMouseDragged = {e : MouseEvent => mouse = Option(e)}
 	            onMouseReleased = {mouse = None}
-                content = Seq(canvas, new BorderPane{
-                    center = startbutton
-                    bottom = new HBox{
-	                    content = Seq(new Rectangle{
-			                fill = Color.LIGHTGREEN
-			                width <== bomber * 8
-			                height = 50
-	                    },
-	                    new Rectangle{
-	                        fill = Color.RED
-	                        width <== (- bomber + 100) * 8
-	                        height = 50
-	                    })
-                    }
-                })
+                content = Seq(canvas, statusscreen, subscreen)
                 cursor = new ImageCursor(cursorimg, cursorimg.getWidth / 2, cursorimg.getHeight / 2)
             }, screenWidth, screenHeight)
         }.show
@@ -106,6 +122,9 @@ class AdventCalendar extends Application {
     }
     def execute(): Unit = {
         count += 1
+        if(count == 2000){
+            enemies = Boss :: enemies
+        }
         balloons.foreach{ _.move() }
         mouse.foreach{e =>
             if(count % 3 == 0){
@@ -115,7 +134,7 @@ class AdventCalendar extends Application {
 	            balloons = new Balloon(irofX, irofY, mx * 16 / len, my * 16 / len, balloonimg) :: balloons
             }
         }
-        if(Math.random > 0.7){
+        if(Math.random > 0.8){
             enemies = new Meteo :: enemies
         }
         enemies.foreach{e =>
@@ -124,13 +143,18 @@ class AdventCalendar extends Application {
             if(i >= 0){
             	balloons(i).active = false
             	e.hp -= 1
-            	if(bomber.value < 100)bomber.value = bomber.value + 1
+            	if(power.value < 100)power.value = power.value + 1
             }
             if(e.crash){
-                bomber.value = bomber.value - 1
+                power.value = power.value - 1
                 e.hp = 0
-                //TODO
-                if(bomber.value < 0)bomber.value = 0
+                if(power.value < 0)power.value = 0
+            }
+            if(Boss.crash || power.value <= 0){
+                gameover()
+            }
+            if(!Boss.active){
+                congratulations()
             }
         }
         balloons = balloons.filter{ _.active }
@@ -141,6 +165,27 @@ class AdventCalendar extends Application {
         enemies.foreach{ ci => gc.drawImage(ci.image, ci.x, ci.y) }
         balloons.foreach{ ci => gc.drawImage(ci.image, ci.x, ci.y) }
         gc.drawImage(irofimg, irofX, irofY)
+    }
+
+    def gameover(): Unit = {
+        statusscreen.top = new Label("GAME OVER"){
+            textFill = Color.RED
+    		style = "-fx-background-color: DarkRed ; -fx-padding : 20"
+            font = Font.font("monospaced", FontWeight.BOLD, 64)
+            alignment = Pos.TOP_CENTER
+        }
+        mainloop.pause
+        startbutton.visible = true
+    }
+    def congratulations(): Unit = {
+        statusscreen.top = new Label("Congratulations!!"){
+            textFill = Color.LIGHTGREEN
+    		style = "-fx-background-color: DarkGreen ; -fx-padding : 20"
+            font = Font.font("monospaced", FontWeight.BOLD, 64)
+            alignment = Pos.TOP_CENTER
+        }
+        mainloop.pause
+        startbutton.visible = true
     }
 }
 
